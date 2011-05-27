@@ -60,6 +60,35 @@ void event_join (irc_session_t* session, const char* event,
 	sqlite3_exec(database,query_join,0,0,0);
 }
 
+static int callback(void *NotUsed, int argc, char **argv, char **azColName){
+	NotUsed=0;
+	int i;
+	for(i=0; i<argc; i++){
+		printf("%s = %s\n", azColName[i], argv[i] ? argv[i]: "NULL");
+	}
+	printf("\n");
+fflush(stdout);
+	return 0;
+}
+
+void event_privmsg(irc_session_t* session, const char* event, 
+         const char* origin, const char** params, unsigned int count)
+{
+	
+	fflush(stdout); /* force print*/
+	if(strcmp(params[1],"-hallo")==0){
+		printf("What do you want to do today?\n");
+	}
+
+	if(strcmp(params[1],"-lastlogin")==0){
+		char query_last_login[1000];
+		sprintf(query_last_login,"SELECT * FROM activity ORDER BY time DESC LIMIT 1");
+		sqlite3_exec(database,"",callback,0,0);
+	}
+	fflush(stdout); /* force print */
+
+}
+
 void event_channel (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
 {
@@ -70,10 +99,6 @@ void event_channel (irc_session_t* session, const char* event,
 		printf ("'%s' hat im Channel %s gesagt: %s\n", 
 		origin ? origin : "irgendwer", 
 		params[0], params[1]);
-	}
-
-	if(params[1]=="!!!!!"){
-		shutdown();
 	}	
 
 	/*sql query fpr activity insertion*/
@@ -178,6 +203,7 @@ int main(int argc, char** argv)
 	callbacks.event_connect = event_connect;
 	callbacks.event_join    = event_join;
 	callbacks.event_channel = event_channel;
+	callbacks.event_privmsg = event_privmsg;
 
 	ctx.channel = channel;
 	ctx.nick    = username;
