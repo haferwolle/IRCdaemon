@@ -22,6 +22,11 @@ void shutdown(){
 	exit(0);
 }
 
+void printHelp()
+{
+	printf("test the help");
+}
+
 void event_connect (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
 {
@@ -68,89 +73,103 @@ void event_channel (irc_session_t* session, const char* event,
 /*Aus Vorlesung 20110411*/
 static void daemonize()
 {
-  pid_t pid, sid;
+	pid_t pid, sid;
 
-  if (getppid() == 1) return;
+	if (getppid() == 1) return;
 
-  pid = fork();
-  if ( pid < 0 ) exit (1);
+	pid = fork();
+	if ( pid < 0 ) exit (1);
 
-  /* Wenn ein Kindprozess erzeugt wurde, kann der 
-     Eltern Prozess sich beenden 
-  */
+	/* Wenn ein Kindprozess erzeugt wurde, kann der 
+	Eltern Prozess sich beenden 
+	*/
 
-  if (pid > 0) exit (0);
+	if (pid > 0) exit (0);
 
-  /* Neues file mode mask */
-  umask(0);
+	/* Neues file mode mask */
+	umask(0);
 
-  /* Neue SID Umgebung */
-  sid = setsid();
-  if (sid < 0) exit(1);
+	/* Neue SID Umgebung */
+	sid = setsid();
+	if (sid < 0) exit(1);
 
-  /* Aendern des Arbeitsverzeichnisses */
-  if ((chdir("/") < 0)) exit(1); 
+	/* Aendern des Arbeitsverzeichnisses */
+	if ((chdir("/") < 0)) exit(1); 
 
-  /* Aendern der default Filedescriptoren */
-  freopen("/dev/null", "r", stdin);
-  freopen("/dev/null", "w", stdout);
-  freopen("/dev/null", "w", stderr);
+	/* Aendern der default Filedescriptoren */
+	freopen("/dev/null", "r", stdin);
+	freopen("/dev/null", "w", stdout);
+	freopen("/dev/null", "w", stderr);
 }
 
 
 
 int main(int argc, char** argv)
 {
-  sqlite3_open("logging.db",&database);
-  
-  daemonize();
+  	int isDaemon=1;
 
-  irc_callbacks_t callbacks;
-  irc_session_t *s;
-  irc_ctx_t ctx;
+	if (argc > 1){
+		int opt=0;
+		while((opt = getopt(argc, argv, "Dh"))!= -1) { 
+			switch(opt) { 
+				case 'D': isDaemon=0; 
+					break;
+				case 'h': printHelp(); 
+					break;
+				
+			}
+		}
+	}	
 
-  if ( argc != 4)
-  {
-    printf ("Usage: %s <server> <nick> <channel>\n", argv[0]);
-    return 1;
-  }
+	if ( argc < 4)
+	{
+	printf ("Usage: %s <server> <nick> <channel> <options>\n", argv[0]);
+	return 1;
+	}
 
+	if(isDaemon==1){
+	  daemonize();
+	}
 
-  /* Initialisierung der Callbacks */
-  memset (&callbacks, 0, sizeof(callbacks));
+	/*open database connection*/
+	sqlite3_open("logging.db",&database);
 
-  /* Die Callbacks einreichen */
-  callbacks.event_connect = event_connect;
-  callbacks.event_join    = event_join;
-  callbacks.event_channel = event_channel;
+	/*IRC CONNECTION*/
+	irc_callbacks_t callbacks;
+	irc_session_t *s;
+	irc_ctx_t ctx;
 
-  
-  ctx.channel = argv[3];
-  ctx.nick    = argv[2];
+	/* Initialisierung der Callbacks */
+	memset (&callbacks, 0, sizeof(callbacks));
 
-  s = irc_create_session(&callbacks);
-  if (!s)
-  {
-    printf("Konnte die Sitzung nicht konfigurieren...\n");
-    return 1;
-  }
+	/* Die Callbacks einreichen */
+	callbacks.event_connect = event_connect;
+	callbacks.event_join    = event_join;
+	callbacks.event_channel = event_channel;
 
+	ctx.channel = argv[3];
+	ctx.nick    = argv[2];
 
-  irc_set_ctx(s, &ctx);
-  irc_option_set(s, LIBIRC_OPTION_STRIPNICKS);
+	s = irc_create_session(&callbacks);
+	if (!s)
+	{
+	printf("Konnte die Sitzung nicht konfigurieren...\n");
+	return 1;
+	}
 
-  /* Verbindung aufbauen */
-  if ( irc_connect(s, argv[1], 6667, 0, argv[2], 0, 0))
-  {
-    printf("Konnte keine Verbindung zum Server aufbauen...\n");
-    return 1;
-  }
+	irc_set_ctx(s, &ctx);
+	irc_option_set(s, LIBIRC_OPTION_STRIPNICKS);
 
-  irc_run(s);
+	/* Verbindung aufbauen */
+	if ( irc_connect(s, argv[1], 6667, 0, argv[2], 0, 0))
+	{
+	printf("Konnte keine Verbindung zum Server aufbauen...\n");
+	return 1;
+	}
 
-  
-  return 0;
+	irc_run(s);
 
+	return 0;
 }
 
 
