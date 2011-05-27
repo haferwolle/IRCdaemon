@@ -11,6 +11,11 @@
 
 struct sqlite3* database;
 
+int isDaemon;
+char* username;
+char* server;
+char* channel;
+
 typedef struct
 {
   char* channel;
@@ -24,8 +29,17 @@ void shutdown(){
 
 void printHelp()
 {
-	printf("test the help");
+        printf("Usage\n\n") ;
+	printf("required:\n") ;
+	printf("\t-u irc nick name e.g. -u mynick\n") ;
+        printf("\t-s irc server e.g. -s irc.myserver.net\n") ;
+	printf("\t-c irc channel e.g. -c '#mychannel'\n") ;
+
+	printf("\noptional:\n");
+        printf("\t-D do NOT start as a daemon\n") ;
+        printf("\t-h get help\n") ;
 }
+
 
 void event_connect (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
@@ -49,16 +63,20 @@ void event_join (irc_session_t* session, const char* event,
 void event_channel (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
 {
-/*
-	printf ("'%s' hat im Channel %s gesagt: %s\n", 
-	origin ? origin : "irgendwer", 
-	params[0], params[1]);
-*/
+
+	/*if not a daemon, print channel activity to stdout*/
+	if(isDaemon==0)
+	{
+		printf ("'%s' hat im Channel %s gesagt: %s\n", 
+		origin ? origin : "irgendwer", 
+		params[0], params[1]);
+	}
 
 	if(params[1]=="!!!!!"){
 		shutdown();
 	}	
 
+	/*sql query fpr activity insertion*/
 	char query_activity[2048];
 	sprintf
 	(
@@ -67,6 +85,7 @@ void event_channel (irc_session_t* session, const char* event,
 		origin,params[0],params[1]
 	);
 
+	/*execute query*/
 	sqlite3_exec(database,query_activity,0,0,0);
 }
 
@@ -106,25 +125,38 @@ static void daemonize()
 
 int main(int argc, char** argv)
 {
-  	int isDaemon=1;
+  	isDaemon=1;
+
 
 	if (argc > 1){
 		int opt=0;
-		while((opt = getopt(argc, argv, "Dh"))!= -1) { 
+		while((opt = getopt(argc, argv, "s:u:c:D::h::"))!= -1) { 
 			switch(opt) { 
+				case 's': server=optarg; 
+					break;
+				case 'u': username=optarg; 
+					break;
+				case 'c': channel=optarg; 
+					break;
+
 				case 'D': isDaemon=0; 
 					break;
-				case 'h': printHelp(); 
+				case 'h': printHelp();
+					return 0;
 					break;
+
 				
 			}
 		}
 	}	
+	
 
-	if ( argc < 4)
+	//required params are not provided
+	if(username==0 || channel==0 || server==0)
 	{
-	printf ("Usage: %s <server> <nick> <channel> <options>\n", argv[0]);
-	return 1;
+		printf("Wrong or missing arguments!\n\n") ;
+		printHelp();
+		return 0;
 	}
 
 	if(isDaemon==1){
@@ -147,8 +179,8 @@ int main(int argc, char** argv)
 	callbacks.event_join    = event_join;
 	callbacks.event_channel = event_channel;
 
-	ctx.channel = argv[3];
-	ctx.nick    = argv[2];
+	ctx.channel = channel;
+	ctx.nick    = username;
 
 	s = irc_create_session(&callbacks);
 	if (!s)
@@ -161,7 +193,7 @@ int main(int argc, char** argv)
 	irc_option_set(s, LIBIRC_OPTION_STRIPNICKS);
 
 	/* Verbindung aufbauen */
-	if ( irc_connect(s, argv[1], 6667, 0, argv[2], 0, 0))
+	if ( irc_connect(s, server, 6667, 0, username, 0, 0))
 	{
 	printf("Konnte keine Verbindung zum Server aufbauen...\n");
 	return 1;
