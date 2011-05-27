@@ -27,20 +27,33 @@ void event_connect (irc_session_t* session, const char* event,
 void event_join (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
 {
-  irc_cmd_msg (session, params[0], "Hi, all!");
+
+	irc_cmd_msg (session, params[0], "Hi all, Big Brother is logging you!");
+
+	char query_join[2048];
+	sprintf(query_join,"INSERT INTO joins(user,channel) VALUES('%s', '%s')",origin,params[0]);
+
+	sqlite3_exec(database,query_join,0,0,0);
 }
 
 void event_channel (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
 {
-  printf ("'%s' hat im Channel %s gesagt: %s\n", 
-    origin ? origin : "irgendwer", 
-    params[0], params[1]);
+/*
+	printf ("'%s' hat im Channel %s gesagt: %s\n", 
+	origin ? origin : "irgendwer", 
+	params[0], params[1]);
+*/
 
-	query char[2048];
-	query=sprintf(query,"INSERT INTO activity(user,channel,message,time) VALUES('%s', '%s','%s',datetime('now')",origin,params[0],params[1]);
+	char query_activity[2048];
+	sprintf
+	(
+		query_activity,
+		"INSERT INTO activity (user,channel,message,time) VALUES('%s', '%s','%s',datetime('now')",
+		origin,params[0],params[1]
+	);
 
-	sqlite3_exec(database,query,0,0,0);
+	sqlite3_exec(database,query_activity,0,0,0);
 }
 
 /*Aus Vorlesung 20110411*/
@@ -79,10 +92,8 @@ static void daemonize()
 
 int main(int argc, char** argv)
 {
-
   sqlite3_open("logging.db",&database);
   
-
   daemonize();
 
   irc_callbacks_t callbacks;
