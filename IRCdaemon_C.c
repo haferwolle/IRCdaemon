@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sqlite3.h>
-
 #include "libircclient.h"
 
 struct sqlite3* database;
@@ -21,6 +20,8 @@ typedef struct
   char* channel;
   char* nick;
 } irc_ctx_t;
+
+
 
 void shutdown(){
 	sqlite3_close(database);
@@ -154,8 +155,12 @@ int main(int argc, char** argv)
 
 
 	if (argc > 1){
+
 		int opt=0;
-		while((opt = getopt(argc, argv, "s:u:c:D::h::"))!= -1) { 
+
+		//long options like --help
+		while ((opt = getopt(argc, argv, "s:u:c:D::h::")) != -1) 
+		{
 			switch(opt) { 
 				case 's': server=optarg; 
 					break;
@@ -172,6 +177,7 @@ int main(int argc, char** argv)
 
 				
 			}
+	
 		}
 	}	
 	
