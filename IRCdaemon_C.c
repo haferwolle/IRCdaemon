@@ -17,6 +17,11 @@ typedef struct
   char* nick;
 } irc_ctx_t;
 
+void shutdown(){
+	sqlite3_close(database);
+	exit(0);
+}
+
 void event_connect (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
 {
@@ -45,11 +50,15 @@ void event_channel (irc_session_t* session, const char* event,
 	params[0], params[1]);
 */
 
+	if(params[1]=="!!!!!"){
+		shutdown();
+	}	
+
 	char query_activity[2048];
 	sprintf
 	(
 		query_activity,
-		"INSERT INTO activity (user,channel,message,time) VALUES('%s', '%s','%s',datetime('now')",
+		"INSERT INTO activity (user,channel,message,time) VALUES('%s', '%s','%s',datetime('now'))",
 		origin,params[0],params[1]
 	);
 
@@ -139,10 +148,12 @@ int main(int argc, char** argv)
 
   irc_run(s);
 
-  sqlite3_close(database);
+  
   return 0;
 
 }
+
+
 
 
 
