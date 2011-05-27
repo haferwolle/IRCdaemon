@@ -5,8 +5,11 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sqlite3.h>
 
 #include "libircclient.h"
+
+struct sqlite3* database;
 
 typedef struct
 {
@@ -33,6 +36,11 @@ void event_channel (irc_session_t* session, const char* event,
   printf ("'%s' hat im Channel %s gesagt: %s\n", 
     origin ? origin : "irgendwer", 
     params[0], params[1]);
+
+	query char[2048];
+	query=sprintf(query,"INSERT INTO activity(user,channel,message,time) VALUES('%s', '%s','%s',datetime('now')",origin,params[0],params[1]);
+
+	sqlite3_exec(database,query,0,0,0);
 }
 
 /*Aus Vorlesung 20110411*/
@@ -67,8 +75,13 @@ static void daemonize()
   freopen("/dev/null", "w", stderr);
 }
 
+
+
 int main(int argc, char** argv)
 {
+
+  sqlite3_open("logging.db",&database);
+  
 
   daemonize();
 
@@ -115,6 +128,7 @@ int main(int argc, char** argv)
 
   irc_run(s);
 
+  sqlite3_close(database);
   return 0;
 
 }
