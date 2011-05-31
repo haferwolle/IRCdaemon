@@ -8,18 +8,16 @@
 #include <sqlite3.h>
 #include "libircclient.h"
 
-struct sqlite3* database;
+struct sqlite3* Database;
 irc_session_t *s;
 FILE *log_file;
-
-
 
 int isDaemon;
 char* username;
 char* server;
 char* channel;
 
-char global_origin[50];
+static char global_origin[50];
 
 typedef struct
 {
@@ -28,9 +26,10 @@ typedef struct
 } irc_ctx_t;
 
 
-/*this actually doesn't work*/
+
 void shutdown(){
-	sqlite3_close(database);
+	sqlite3_close(Database);
+	
 	exit(0);
 }
 
@@ -64,8 +63,9 @@ static int SQLCallback(void *NotUsed, int argc, char **argv, char **azColName)
   } 
 
   printf("\n"); 
+  fflush(stdout);
   return 0; 
-}
+}	
 
 static int SQLCallback_File(void *NotUsed, int argc, char **argv, char **azColName) 
 { 
@@ -82,8 +82,9 @@ static int SQLCallback_File(void *NotUsed, int argc, char **argv, char **azColNa
   } 
 
   printf("\n");
+
   return 0; 
-}
+}	
 
 
 /*Event Callbacks*/
@@ -97,18 +98,19 @@ void event_connect (irc_session_t* session, const char* event,
 void event_join (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
 {
+  
+  
+  irc_cmd_msg (session, params[0], "Hi, Mein Bot FUNZT!!");
+  
+  char str_join[200];
+  
+  sprintf(str_join, "INSERT INTO join_irc (Channel, User, Joindate, Jointime) Values ('%s', '%s', date('now'), time('now'))",params[0], origin);
+  
+  sqlite3_exec(Database, str_join,0,0,0);
+  
+  
+  printf("Der User: '%s', hat sich soeben eingeloggt\n",origin);
 
-	irc_cmd_msg (session, params[0], "Hi all, Big Brother is logging you!");
-
-	char query_join[2048];
-	sprintf(query_join,"INSERT INTO joins(user,channel,time) VALUES('%s', '%s',datetime('now'))",origin,params[0]);
-
-	sqlite3_exec(database,query_join,0,0,0);
-
-	if(isDaemon==0)
-	{
-		printf("Der User: '%s', hat sich soeben eingeloggt\n",origin);
-	}
 }
 
 
@@ -118,12 +120,12 @@ void event_part (irc_session_t* session, const char* event,
          const char* origin, const char** params, unsigned int count)
 {
 
-	char query_quit[500];
+	char str_quit[500];
 
 	printf("Der User: '%s', hat sich soeben ausgeloggt\n", origin);
 	
-	sprintf(query_quit, "INSERT INTO left (user, channel, reason, time) VALUES('%s', '%s', '%s', datetime('now'))",origin, params[0], params[1]);
-	sqlite3_exec(database, query_quit,0,0,0);
+	sprintf(str_quit, "INSERT INTO part_irc (user, channel, reason, partdate, parttime) VALUES('%s', '%s', '%s', date('now'), time('now'))",origin, params[0], params[1]);
+	sqlite3_exec(Database, str_quit,0,0,0);
 	
 }
 
@@ -137,19 +139,19 @@ void event_privmsg (irc_session_t* session, const char* event,
 	{
 		printf("Ich reagiere auf Private Messages\n");
 		irc_cmd_msg(session, origin, "Ich reagiere auf private Nachrichten");
+		
 	}
 	
-	if (strcmp(params[1],"-getLatest")==0)
+	if (strcmp(params[1],"-login")==0)
 	{
 		strcpy(global_origin, origin);
 		
-		sqlite3_exec(database, "SELECT * FROM joins ORDER BY time DESC LIMIT 1",SQLCallback,0,0);	
+		sqlite3_exec(Database, "Select * From join_irc Order by rowid desc limit 1",SQLCallback,0,0);	
 		
 		
+		printf(global_origin);
 		
-		printf("---%s---\n",global_origin);
-		
-		printf("Select wurde ausgeführt\n");
+		fflush(stdout);
 
 	}
 	
@@ -157,9 +159,9 @@ void event_privmsg (irc_session_t* session, const char* event,
 	{
 	
 		irc_cmd_msg(session, origin, "-hallo : Statusmeldung zurück");
-		irc_cmd_msg(session, origin, "-getLatest : gib letzten User an, der den Chat betreten hat");
+		irc_cmd_msg(session, origin, "-login : die logintable auslesen");
 		irc_cmd_msg(session, origin, "-help: genau das Hier");
-		irc_cmd_msg(session, origin, "-logfile: Erstellt eine Log-Datei");
+		irc_cmd_msg(session, origin, "-logfile: Erstellt die Log Datei");
 
 
 	}
@@ -167,8 +169,9 @@ void event_privmsg (irc_session_t* session, const char* event,
 	if (strcmp(params[1],"-logfile")==0)
 	{
 		log_file = fopen("log.txt", "w");
-		sqlite3_exec(database, "Select * From joins",SQLCallback_File,0,0);	
-		fclose(log_file);
+		sqlite3_exec(Database, "Select * From join_irc",SQLCallback_File,0,0);
+		fclose(log_file);		
+		
 	}
 	
 
@@ -177,27 +180,18 @@ void event_privmsg (irc_session_t* session, const char* event,
 
 void event_channel (irc_session_t* session, const char* event, 
          const char* origin, const char** params, unsigned int count)
+
 {
+	char str_insert[10000];
+	
+	sprintf(str_insert, "INSERT INTO log_irc (User, Channel, Message, InsertDate, InsertTime) Values ('%s', '%s', '%s', date('now'), time('now'))", origin, params[0], params[1]);
+		
+	sqlite3_exec(Database, str_insert,0,0,0);
 
-	/*if not a daemon, print channel activity to stdout*/
-	if(isDaemon==0)
-	{
-		printf ("'%s' hat im Channel %s gesagt: %s\n", 
-		origin ? origin : "irgendwer", 
-		params[0], params[1]);
-	}	
-
-	/*sql query for activity insertion*/
-	char query_activity[2048];
-	sprintf
-	(
-		query_activity,
-		"INSERT INTO activity (user,channel,message,time) VALUES('%s', '%s','%s',datetime('now'))",
-		origin,params[0],params[1]
-	);
-
-	/*execute query*/
-	sqlite3_exec(database,query_activity,0,0,0);
+    printf ("'%s' hat im Channel %s gesagt: %s\n", 
+    origin ? origin : "irgendwer", 
+    params[0], params[1]);
+	
 }
 
 /*Aus Vorlesung 20110411*/
@@ -236,6 +230,7 @@ static void daemonize()
 
 int main(int argc, char** argv)
 {
+	
   	isDaemon=1;
 
 
@@ -280,7 +275,7 @@ int main(int argc, char** argv)
 	}
 
 	/*open database connection*/
-	sqlite3_open("logging.db",&database);
+	sqlite3_open("knowledge.db",&Database);
 
 	/*IRC CONNECTION*/
 	irc_callbacks_t callbacks;
@@ -294,7 +289,7 @@ int main(int argc, char** argv)
 	callbacks.event_join    = event_join;
 	callbacks.event_channel = event_channel;
 	callbacks.event_privmsg = event_privmsg;
-	callbacks.event_part = event_part;
+	callbacks.event_part 	= event_part;
 
 	ctx.channel = channel;
 	ctx.nick    = username;
