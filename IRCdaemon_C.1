@@ -1,36 +1,32 @@
-.Dd 5/29/11					
-.Dt IRCDaemon_C				\" program
-.Os Darwin
-.Sh NAME					
+.TH IRCDAEMON_C 1 "MAY 2011" Linux "User Manuals"
+.Os Ubuntu
+.SH NAME
 .Nm IRCDaemon_C - (c) Wolfgang Dinkel 2011
-.Sh SYNOPSIS				\" required
-.Nm
-.\" .Op Fl a Ar path \" [-a path] 
-.\" .Op Ar file \" [file]
-.\" .Op Ar \" [file ...]
-.\" .Ar arg0 \" Underlined argument - use .Ar anywhere to underline
--s <server> -u <nick> -c <channel> \" Arguments
-.Op Fl d \" [-abcd]
-.Sh DESCRIPTION				\" Section Header - required - don't modify
-IRCDaemon can connect to any IRC channel and logs the channels activity
-.Pp							\" space
-List of arguments and flags needed to run and use IRCDaemon:
-.Bl -tag -width -indent \" Beginning og tag list
-.It <server>
-Enter server name or ip address
-.It <nick>
-Enter the daemons name within the channel
-.It <channel>
-Enter the channel name
-.It Flags: (optional)
--D
-do NOT start as a deamon
--h
-Help
-.El							
-.Pp
-.Bl -tag -width -indent		
-.It Fl d \"-a flag as a list item
-Starts the daemon.
-.El
-.Pp
+IRCdaemon_C \- A IRC daemon written in C
+.SH SYNOPSIS
+.B IRCdaemon [-s 
+.I server
+.B ] [-c
+.I channel
+.B ] [-u
+.I username/nick
+.B ] ...
+.SH DESCRIPTION
+.B IRCdaemon
+An IRC daemon that once started logs all users joining or leaving the channel. Also logs all messages from any user. It is also possible to control the IRC daemon via private message. That way you can get the last logged in user or print a db dump to a log file.
+.SH OPTIONS
+.IP -D
+Do 
+.B NOT 
+start as a daemon, but as a console app
+.IP "-h"
+This help
+.SH FILES
+.I /include/
+.RS
+libircclient header files
+
+.SH BUGS
+The makefiel doesn't seem to include libircclient
+.SH AUTHOR
+Wolfgang Dinkel <wolfgang.dinkel at fh-heidelberg dot de>
