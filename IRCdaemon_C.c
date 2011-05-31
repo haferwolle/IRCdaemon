@@ -135,7 +135,7 @@ void event_privmsg (irc_session_t* session, const char* event,
 	
 	if (strcmp(params[1],"-hallo")==0)
 	{
-		printf("Ich reagiere auf Private Messages\n");
+		printf("Hab die Ehre! Gib -help ein für weitere Kommandos!\n");
 		irc_cmd_msg(session, origin, "Ich reagiere auf private Nachrichten");
 	}
 	
@@ -294,7 +294,7 @@ int main(int argc, char** argv)
 	callbacks.event_join    = event_join;
 	callbacks.event_channel = event_channel;
 	callbacks.event_privmsg = event_privmsg;
-	callbacks.event_part = event_part;
+	callbacks.event_part    = event_part;
 
 	ctx.channel = channel;
 	ctx.nick    = username;
