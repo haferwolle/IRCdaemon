@@ -1,15 +1,15 @@
 .Dd 5/29/11					
-.Dt IRCDaemon				\" program
+.Dt IRCDaemon_C				\" program
 .Os Darwin
 .Sh NAME					
-.Nm IRCDaemon - (c) Wolfgang Dinkel 2011
+.Nm IRCDaemon_C - (c) Wolfgang Dinkel 2011
 .Sh SYNOPSIS				\" required
 .Nm
 .\" .Op Fl a Ar path \" [-a path] 
 .\" .Op Ar file \" [file]
 .\" .Op Ar \" [file ...]
 .\" .Ar arg0 \" Underlined argument - use .Ar anywhere to underline
-<server> <nick> <channel> \" Arguments
+-s <server> -u <nick> -c <channel> \" Arguments
 .Op Fl d \" [-abcd]
 .Sh DESCRIPTION				\" Section Header - required - don't modify
 IRCDaemon can connect to any IRC channel and logs the channels activity
@@ -17,12 +17,16 @@ IRCDaemon can connect to any IRC channel and logs the channels activity
 List of arguments and flags needed to run and use IRCDaemon:
 .Bl -tag -width -indent \" Beginning og tag list
 .It <server>
-Enter server IP address 
+Enter server name or ip address
 .It <nick>
 Enter the daemons name within the channel
 .It <channel>
-Enter the channel
+Enter the channel name
 .It Flags: (optional)
+-D
+do NOT start as a deamon
+-h
+Help
 .El							
 .Pp
 .Bl -tag -width -indent		
